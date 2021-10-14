@@ -153,7 +153,7 @@ else
       install_pkg curl
    fi
 
-   curl -fsSL https://deb.nodesource.com/setup_16.x > /dev/null | sudo -E bash -
+   curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
 
    # install pre-requisites
    if check_installed gcc; then
@@ -192,7 +192,7 @@ fi
 # clone metaplex repo
 echo "cloning [metaplex] repo..."
 git clone https://github.com/metaplex-foundation/metaplex.git >/dev/null
-echo "${green}[metaplex] repo cloned successfully.{$normal}"
+echo "${green}[metaplex] repo cloned successfully.${normal}"
 
 # check if 'ts-node' installed, install if not
 if check_npm_installed ts-node; then
@@ -207,22 +207,26 @@ if solana --version &>/dev/null; then
 else
    echo "${orange}[solana] not found, installing...${normal}"
    sh -c "$(curl -sSfL https://release.solana.com/v1.8.0/install)"
-   . ~/.profile # source .profile so PATH updates in current session
    echo "${green}[solana] installed successfully.${normal}"
 fi
 
-solana config set --url https://api.${network}.solana.com # set solana network
+solana_bin="~/.local/share/solana/install/active_release/bin"
+SOLANA="${solana_bin}/solana"
+SOLANA_KEYGEN="${solana_bin}/solana-keygen"
+
+`${SOLANA} config set --url https://api.${network}.solana.com` # set solana network
 keyJSON="~/.config/solana/${network}.json"
 
 if [ "${pubkey}" = "new" ]; then # generate new wallet
    pubkey=$(solana-keygen new --outfile $keyJSON | grep pubkey | cut -d' ' -f2)
 else  #import public wallet
    echo "${orange}Note: You will need your recovery phrase to import wallet. Please grab it before continuing!${normal}"
-   solana-keygen recover 'prompt://?key=0/0' --outfile $keyJSON
+   ${SOLANA_KEYGEN} recover 'prompt://?key=0/0' --outfile $keyJSON
 
-solana config set --keypair $keyJSON # set Solana CLI to use wallet
+`${SOLANA} config set --keypair $keyJSON` # set Solana CLI to use wallet
+
 if [ "${network}" = "devnet" ]; then # only airdrop if running on devnet
-   solana airdrop 1 #airdrop some SOL
+   ${SOLANA} airdrop 1 #airdrop some SOL
 fi
 
 metaplex_dir="${current_dir}/metaplex"
