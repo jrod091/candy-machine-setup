@@ -1,0 +1,410 @@
+#!/usr/bin/bash
+#######################################################################
+# Candy-Machine Deploy Script                                         #
+# ------------------------------------------------------------------- #
+# Author: jrod091                                                     #
+# Copyright jrod091, 2021                                             #
+#                                                                     #
+# Description:                                                        #
+# This script sets up a metaplex store and candy machine for batch    #
+# minting from scratch.                                               #
+#                                                                     #
+# NOTE: this script must NOT be run as root!                          #
+#######################################################################
+
+## SET COLORS IF TERMINAL SUPPORTS IT
+if test -t 1; then # if terminal
+   ncolors=$(which tput > /dev/null && tput colors) # supports color
+   if test -n "$ncolors" && test $ncolors -ge 8; then
+      termcols=$(tput cols)
+      bold="$(tput bold)"
+      underline="$(tput smul)"
+      standout="$(tput smso)"
+      normal="$(tput sgr0)"
+      black="$(tput setaf 0)"
+      red="$(tput setaf 1)"
+      green="$(tput setaf 2)"
+      yellow="$(tput setaf 3)"
+      blue="$(tput setaf 4)"
+      magenta="$(tput setaf 5)"
+      cyan="$(tput setaf 6)"
+      white="$(tput setaf 7)"
+      orange="$(tput setaf 166)"
+   fi
+fi
+
+if [ `whoami` = root ]; then # exit if running as root
+   echo "${red}Script cannot be run as root!${normal}"
+   exit 1
+fi
+
+## VARIABLES
+network=''
+pubkey=''
+current_dir=''
+metaplex_dir=''
+assets_dir=''
+js_dir=''
+cm_cli=''
+cm_publickey=''
+cm_pubkey=''
+cm_timestamp=''
+cmm_dir=''
+env_ex_file=''
+env_file=''
+
+## FUNCTIONS
+help_print() { # print help text
+   cat <<EOF
+Usage: candy_machine_setup <[options]>
+
+Options:
+   -d, --devnet         set 'devnet' as network
+   -h, --help           print command line options
+   -m, --mainnet        set 'mainnet' as network
+   -n, --newkey         setup new wallet locally
+   -p, --pubkey={key}   set public wallet key address from Phantom or other source
+EOF
+}
+
+bad_opt() { # print error to STDOUT and exit with error code '2'
+   echo "${red}$*${normal}" >&2
+   help_print
+   exit 2
+}
+
+need_arg() { # flag that no argument was passed with long flag
+   if [ -z "$OPTARG" ]; then
+      bad_opt "${red}No argument for --$OPT given!${normal}"
+      help_print
+   fi
+}
+
+check_npm_installed() { # check if specified npm package is installed
+   echo "Checking to see if [$1] is installed..."
+   npm list -g | grep -q $1
+}
+
+install_npm_pkg() { # install npm package quietly
+   echo "${orange}[$1] not found, installing...${normal}"
+   sudo npm install -g $1 &>/dev/null
+   echo "${green}[$1] installed successfully.${normal}"
+}
+
+check_installed() { # check if package is installed
+   echo "Checking to see if [$1] is installed..."
+   apt -qq list $1 2>/dev/null | grep -qE "(installed|upgradable)"
+}
+
+install_pkg() { # install package quietly
+   echo "${orange}[$1] not found, installing...${normal}"
+   sudo apt-get update -qq
+   sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq $1
+   echo "${green}[$1] installed successfully.${normal}"
+}
+
+string_contains() { # check if substring ($1) in string ($2), case insensitve search
+   local _lc=${2,,}
+   [ -z "$1" ] || { [ -z "${_lc##*${1,,}*}" ] && [ -n "$2" ] ;} ;
+}
+
+## USER INPUT
+while getopts ":dhmnp:-:" OPT; do
+   if [ "$OPT" = "-" ]; then  # long option support
+      OPT="${OPTARG%%=*}"     # extract long option name
+      OPTARG="${OPTARG#$OPT}" # extract long option argument (may be empty)
+      OPTARG="${OPTARG#=}"    # if long option argument, remove assigning '='
+   fi
+
+   case "$OPT" in
+      d | devnet )   network='devnet' ;;                 # set devnet
+      h | help )     help_print; exit 0 ;;               # print help
+      m | mainnet )  network='mainnet-beta' ;;           # set mainnet
+      n | newkey )   pubkey='new' ;;                     # generate new wallet
+      p | pubkey )   pubkey="${OPTARG}" ;;               # set public wallet key address
+      ??* )          bad_opt "Unknown option --$OPT" ;;  # bad long option
+      ? )            bad_opt ;;                          # bad short option
+   esac
+done
+shift $((OPTIND-1)) # remove parsed optiosn and args from $@ list
+
+## CHECK REQUIRED FLAGS
+if [ "${network}" = "" ]; then
+   echo "${red}Solana network not set!${normal}"
+   help_print
+   exit 3
+fi
+
+if [ "${pubkey}" = "" ]; then
+   echo "${red}public wallet address (or new wallet) required!${normal}"
+   help_print
+   exit 4
+fi
+
+## MAIN SCRIPT
+current_dir=$(pwd) # save current working directory
+# check if 'nodejs' is setup, install if not
+if check_installed nodejs; then
+   echo "${green}[nodejs] found.${normal}"
+else
+   if check_installed curl; then
+      echo "${green}[curl] found.${normal}"
+   else
+      install_pkg curl
+   fi
+
+   curl -fsSL https://deb.nodesource.com/setup_16.x > /dev/null | sudo -E bash -
+
+   # install pre-requisites
+   if check_installed gcc; then
+      echo "${green}[gcc] found.${normal}"
+   else
+      install_pkg gcc
+   fi
+   if check_installed g++; then
+      echo "${green}[g++] found.${normal}"
+   else
+      install_pkg g++
+   fi
+   if check_installed make; then
+      echo "${green}[make] found.${normal}"
+   else
+      install_pkg make
+   fi
+   
+   install_pkg nodejs
+fi
+
+# check if 'yarn' is installed, install if not
+if check_npm_installed yarn; then
+   echo "[yarn] found.${normal}"
+else
+   install_npm_pkg yarn
+fi
+
+# check if 'git' is installed, install if not
+if check_installed git; then
+   echo "${green}[git] found.${normal}"
+else
+   install_pkg git
+fi
+
+# clone metaplex repo
+echo "cloning [metaplex] repo..."
+git clone https://github.com/metaplex-foundation/metaplex.git >/dev/null
+echo "${green}[metaplex] repo cloned successfully.{$normal}"
+
+# check if 'ts-node' installed, install if not
+if check_npm_installed ts-node; then
+   echo "${green}[ts-node] found.${normal}"
+else
+   install_npm_pkg ts-node
+fi
+
+# check if solana is installed, install if not
+if solana --version &>/dev/null; then
+   echo "${green}[solana] found.${normal}"
+else
+   echo "${orange}[solana] not found, installing...${normal}"
+   sh -c "$(curl -sSfL https://release.solana.com/v1.8.0/install)"
+   . ~/.profile # source .profile so PATH updates in current session
+   echo "${green}[solana] installed successfully.${normal}"
+fi
+
+solana config set --url https://api.${network}.solana.com # set solana network
+keyJSON="~/.config/solana/${network}.json"
+
+if [ "${pubkey}" = "new" ]; then # generate new wallet
+   pubkey=$(solana-keygen new --outfile $keyJSON | grep pubkey | cut -d' ' -f2)
+else  #import public wallet
+   echo "${orange}Note: You will need your recovery phrase to import wallet. Please grab it before continuing!${normal}"
+   solana-keygen recover 'prompt://?key=0/0' --outfile $keyJSON
+
+solana config set --keypair $keyJSON # set Solana CLI to use wallet
+if [ "${network}" = "devnet" ]; then # only airdrop if running on devnet
+   solana airdrop 1 #airdrop some SOL
+fi
+
+metaplex_dir="${current_dir}/metaplex"
+assests_dir="${metaplex_dir}/assets"
+
+echo "Creating directory for images..."
+mkdir $assests_dir # create directory for assests
+tee "${assets_dir}/example.json" << EOF > /dev/null
+{
+   "name": "__PLACEHOLDER__",
+   "symbol": "",
+   "description": "Celebratory Solflare NFT for the Solflare X launch",
+   "seller_fee_basis_points": __PLACEHOLDER__,
+   "image": "image.png",
+   "attributes": [
+     {
+       "trait_type": "__PLACEHOLDER__",
+       "value": "__PLACEHOLDER__"
+     }
+   ],
+   "collection": {
+      "name": "__PLACEHOLDER__",
+      "family": "__PLACEHOLDER__"
+   },
+   "properties": {
+     "files": [
+       {
+         "uri": "image.png",
+         "type": "image/png"
+       }
+     ],
+     "category": "image",
+     "creators": [
+       {
+         "address": "__PLACEHOLDER__",
+         "share": __PLACEHOLDER__
+       }
+     ]
+   }
+ }
+EOF
+echo "${green}Directory created successfully.${normal}"
+
+echo "${orange}****************************************************************************************************************
+Pausing to allow time to upload images and JSON files to [${assest_dir}].
+Things to note:
+   - filenames must match between PNG and associated JSON files
+   - filanemes need to be 0-indexed
+      - for example, the first image should be name `0.png` with a `0.json` associated file
+        the next file would be 1.png with 1.json, etc.
+   - there is an exmple JSON file where all you need to do is replace the `__PLACEHOLDER__` areas, as follows:
+      - Line 2: ${bold}${blue}\"name\": \"__PLACEHOLDER__\"${normal}${orange}
+         - This is the name for the NFT, it can be anything you want
+      - Line 5: ${bold}${blue}\"seller_fee_Basis_points\": __PLACEHOLDER__
+         - This is the royalty rate for each sell of the NFT. For example, replacing with `250` would be a 2.5%
+           royalty rate
+      - Lines 9-11
+         - These are the attributes for an NFT. You need to replace the following:
+            - ${bold}${blue}\"trait_type\"${normal}${orange} with the name of the trait, for example \"hair_color\"
+            - ${bold}${blue}\"value\"${normal}${orange} with the value for that trait, for example \"green_hair\"
+         - You may add additional attributes by adding more code blocks in the form of:
+           ${bold}${blue}{
+              \"trait_type\": \"TRAIT NAME\",
+              \"value\": \"TRAIT VALUE\"
+           }${normal}${orange}
+            - each additonal attribute will need to be seperated with a comma, EXCEPT THE LAST ONE, for example,
+            for three traits, it would be:
+              ${bold}${blue}{
+                 ...
+              },
+              {
+                 ...
+              },
+              {
+                 ...
+              }${normal}${orange}
+      - Line 14: ${bold}${blue}\"name\": \"__PLACEHOLDER__\"${normal}${orange}
+         - This is the name of your collection, it can be anything you want
+      - Line 15: ${bold}${blue}\"family\": \"__PLACEHOLDER__\"${normal}${orange}
+         - The family holds multiple collections, this is simply the name of the family, it can be anything you
+            want
+      - Lines 27-28
+         - ${bold}${blue}\"address\": \"__PLACEHOLDER__\"${normal}${orange}
+            - This is the wallet address of the creator for payments
+         - ${bold}${blue}\"share\": __PLACEHOLDER__${normal}${orange}
+            - This is the percent share to be distributed to this wallet, for example `100` would be 100%
+              distributed to the wallet above it
+         - If you want to have multiple creators, you will have multiple code blocks with the same fields. For
+           example, for 2 creators with a 50/50 split:
+               ${bold}${blue}{
+                  \"address\": \"WALLET 1\",
+                  \"share\": 50
+               },
+               {
+                  \"address\": \"WALLET 2\",
+                  \"share\": 50
+               }${normal}${orange}
+            ** Notice the comma between code blocks, similar to the attributes section above **
+****************************************************************************************************************${normal}"
+read -r -s -N 1 -p "Press [Enter] to continue..." key
+
+js_dir="${metaplex_dir}/js"
+cd $js_dir
+
+echo "Installing node modules..."
+yarn install --silent 2>/dev/null # install required npm modules
+echo "${green}Node modules installed successfully.${normal}"
+
+echo "Building packages..."
+yarn build >/dev/null # build metaplex componenets (cli, web, etc)
+echo "${green}Packages built successfully.${normal}"
+
+echo "Preparing packages and binaries..."
+yarn bootstrap >/dev/null
+echo "${green}Packages and binaries prepared successfully${noraml}"
+
+cd $metaplex_dir
+cm_cli="${js_dir}/packages/cli/src/candy-machine-cli.ts"
+
+echo "Uploading images to candy machine..."
+cm_publickey=$(ts-node $cm_cli upload $assets_dir --env ${network} --keypair ${keyJSON} | grep publickey | cut -d' ' -f9)
+echo "${green}Image upload successful.${normal}"
+
+read -p "What would you like the price of the NFTs to be (in SOL): " price
+
+echo "Creating candy machine..."
+cm_pubkey=$(ts-node $cm_cli create_candy_machine --env ${network} --keypair ${keyJSON} --price ${price} | grep pubkey | cut -d' ' -f6)
+echo "${green}Candy machine created successfully.${normal}"
+
+echo "Updating candy machine with available minting start date (beginning of today)..."
+cm_timestamp=$(ts-node $cm_cli update_candy_machine --keypair ${keyJSON} --date `date '+%d %b %Y 00:00:00 %z'` | grep startDate | cut -d' ' -f6)
+echo "${green}Date updated successfully.${normal}"
+
+cd ${current_dir}
+
+echo "Cloning [candy-machine-mint] repo..."
+git clone https://github.com/exiled-apes/candy-machine-mint.git >/dev/null
+echo "${green}[candy-machine-mint] cloned successfully.${normal}"
+
+cmm_dir="${current_dir}/candy-machine-mint"
+
+cd $cmm_dir
+
+echo "Installing node modules..."
+yarn install --silent 2>/dev/null # install required npm modules
+echo "${green}Node modules installed successfully.${normal}"
+
+echo "Building packages..."
+yarn build >/dev/null # build metaplex componenets (cli, web, etc)
+echo "${green}Packages built successfully.${normal}"
+
+echo "Preparing packages and binaries..."
+yarn bootstrap >/dev/null
+echo "${green}Packages and binaries prepared successfully${noraml}"
+
+env_ex_file="${cmm_dir}/.env.example"
+env_file="${cmm_dir}/.env"
+
+echo "Setting up environment file..."
+if [ ! -f $env_file ]; then
+   mv ${env_ex_file} ${env_file}
+
+   sed -ie "s/REACT_APP_CANDY_MACHINE_CONFIG=__PLACEHOLDER__/REACT_APP_CANDY_MACHINE_CONFIG=${cm_publickey}/" $env_file
+   sed -ie "s/REACT_APP_CANDY_MACHINE_ID=__PLACEHOLDER__/REACT_APP_CANDY_MACHINE_ID=${cm_pubkey}/" $env_file
+   sed -ie "s/REACT_APP_TREASURY_ADDRESS=__PLACEHOLDER__/REACT_APP_TREASURY_ADDRESS=${pubkey}/" $env_file
+   sed -ie "s/REACT_APP_CANDY_START_DATE=__PLACEHOLDER__/REACT_APP_CANDY_START_DATE=${cm_timestamp}/" $env_file
+   sed -ie "s/REACT_APP_SOLANA_NETWORK=devnet/REACT_APP_SOLANA_NETWORK=${network}/" $env_file
+   sed -ie "s/REACT_APP_SOLANA_RPC_HOST=https://explorer-api.devnet.solana.com/REACT_APP_SOLANA_RPC_HOST=https://explorer-api.${network}.solana.com/" $env_file
+fi
+echo "${green}Environment file successfully setup.${normal}"
+
+
+echo "${green}############################################################################################################################
+
+Configuration Complete! You make take the following steps to run the candy machine:
+
+   - upload image/json file combos to [${assets_dir}]
+      - be sure the image/json files have the same base file name and are zero
+        indexed, such as {0.png, 0.json}, {1.png, 1.json}, ... , {N.png, N.json}
+   - if on devnet, you may run `solana airdrop N` to add money to your wallet for
+     minting, where `N` is a number >= 1 for the number of SOL to drop.
+   - cd to [${cmm_dir}] and then run `yarn start` to test candy machine
+   ############################################################################################################################${normal}"
+
+exit 0 # normal exit
