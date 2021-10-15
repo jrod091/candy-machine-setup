@@ -100,3 +100,11 @@ The script will pause for you to get your images in the proper directory with as
 #### mainnet with existing wallet
 - `./candy-machine-setup -m -w WALLET_ADDRESS`
 - `./candy-machine-setup --mainnet --wallet=WALLET_ADDRESS`
+
+## Running the Candy Machine
+To run the candy machine, go into the candy machine directory that was created (`candy-machine-mint`) and start the server locally. This can be done with the following:
+```
+cd <path where script was run from>/candy-machine-mint
+yarn start
+```
+Now, open up your web browser to `http://localhost:3000` and login to your wallet by clicking the `Connect Wallet` button. You should see the amount of SOL currently in your wallet, how many NFTs you have in your collection, and how many NFTs are available to mint. To mint your NFTs, click the `MINT` button.
