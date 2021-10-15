@@ -1,22 +1,102 @@
 # candy-machine-setup
 
-Candy Machine setup script
+## Overview
+This script was written to help setup a metaplex store as well as a candy machine for minting. The script will build up everything from scratch, except for your images, of course! Any required packages or modules will be automatically installed if not found on the system so you don't have to worry about anything excpet creating awesome images.
 
+## Usage
+```
 Usage: candy_machine_setup <[options]>
 
 Options:
-   -d, --devnet         set 'devnet' as network
-   -h, --help           print command line options
-   -m, --mainnet        set 'mainnet' as network
-   -n, --newkey         setup new wallet locally
-   -p, --pubkey={key}   set public wallet key address from Phantom or other source
+   -d, --devnet            set 'devnet' as network
+   -h, --help              print command line options
+   -m, --mainnet           set 'mainnet' as network
+   -n, --newwallet         setup new wallet locally
+   -w {ID}, --wallet={ID}  set public wallet key address from Phantom or other source
+```
 
---->To get started on the devnet, use the following example.<---
+- `-d` or `--devnet`: This flag is used to choose the `devnet` network while implementing the solution. This allows you to run in a test environment without real money.
+- `-h` or `--help`: This flag is used to print the usage of the script
+- `-m` or `--mainnet`: This flag is used to choose the `mainnet-beta` network while implementing this solution. This means everything will be live, with real money.
+- `-n` or `-newwallet`: If you do _not_ have a SOL wallet already, this will create one locally on the server
+- `-w {ID}` or `--wallet={ID}`: IF you _do_ have a SOL wallet, use this flag along with passing the public address (`{ID}`)
 
-Example-1.) ./candy_machine_setup.sh -d -p Your-Wallet-Address-Here
+### Notes
+- You need to pass either `-d` or `-m` as an option to choose the network you want to run in. The script will error out if you do not and remind you to choose a network.
+- You need to pass either `-n` or `-p {ID}` as an option for a wallet. The script will error out if you do not and remind you to choose a wallet option.
 
---->To get started on the mainnet, use the following example structure.<---
+## Image Setup
+The script will pause for you to get your images in the proper directory with associated JSON files before continuing. The below are things you should keep in mind when adding your images.
+- The script creates an `assets` directory in the same directory that the script runs from. This is the directory you should drop all PNG and JSON files for minting.
+- Each PNG file requires a corresponding JSON file.
+- Filenames are important. The files need to named as simply a number, starting at `0`. For example, if you have 3 images, you need to have the following files in the `assests` directory:
+```
+0.png
+0.json
+1.png
+1.json
+2.png
+2.json
+```
+- The JSON files need to be configured in accordance with the [NFT standard](https://docs.metaplex.com/nft-standard). This repository has an `example.json` file to try to minimize the effort required to meet the standard. You need to replace each of the `__PLACEHOLDER__`s found in the JSON file with the appropriate information, as detailed below:
+   -  Line 2: __"name": "\_\_PLACEHOLDER\_\_"__
+      - This is the name for the NFT, it can be anything you want
+         - For example, `"name": "NFT name"
+   - Line 5: __"seller_fee_basis_points": \_\_PLACEHOLDER\_\___
+      - This is the royalty rate for each sell of the NFT. This is on a scale from 0-10000
+         - For example, replacing with `"seller_free_basis_points: 250` would be a 2.5% royalty rate
+   - Lines 9-11
+      - These are the attributes for an NFT. You need to replace the following:
+         - __"trait_type"__ with the name of the trait
+         - __"value"__ with the value for that trait
+      - You may add additional attributes by adding more code blocks in the form of:\
+           ```
+           {
+              "trait_type": "TRAIT NAME",
+              "value": "TRAIT VALUE"
+           }
+           ```
+      - each additonal attribute will need to be seperated with a comma, ___EXCEPT THE LAST ONE___, for example, for three traits, it would be:\
+              
+              {
+                 "trait_type": "hair color",
+                  "value": "green"
+              },
+              {
+                 "trait_type": "eye color",
+                  "value": "brown"
+              },
+              {
+                 "trait_type": "eyewear",
+                  "value": "sunglasses"
+              }
+   - Line 14: __"name": "\_\_PLACEHOLDER\_\_"__
+      - This is the name of your collection, it can be anything you want
+         - For example, `"name": "Collection Name"`
+   - Line 15: __"family": "\_\_PLACEHOLDER\_\_"__
+      - The family holds multiple collections, this is simply the name of the family, it can be anything you want
+         - For example, `"family": "Family Name"`
+   - Lines 27-28
+      - __"address": "\_\_PLACEHOLDER\_\_"__
+         - This is the wallet address of the creator for payments
+      - __"share": \_\_PLACEHOLDER\_\___
+         - This is the percent share to be distributed to this wallet, for example `"share": 100` would be 100% distributed to the wallet above it
+         - If you want to have multiple creators, you will have multiple code blocks with the same fields. For example, for 2 creators with a 50/50 split:\
 
-Example-2.) ./candy_machine_setup.sh -m -p Your-Wallet-Address-Here
+               {
+                  "address": "WALLET 1",
+                  "share": 50
+               },
+               {
+                  "address": "WALLET 2",
+                  "share": 50
+               }
+            - ** Notice the comma between code blocks, similar to the attributes section above **
 
-
+## Examples
+#### devnet with new wallet
+- `./candy-machine-setup -d -n`
+- `./candy-machine-setup --devnet --newwallet`
+#### mainnet with existing wallet
+- `./candy-machine-setup -m -w WALLET_ADDRESS`
+- `./candy-machine-setup --mainnet --wallet=WALLET_ADDRESS`
