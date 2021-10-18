@@ -12,6 +12,11 @@
 # NOTE: this script must NOT be run as root!                          #
 #######################################################################
 
+if [ `whoami` = root ]; then # exit if running as root
+   echo "${red}Script cannot be run as root!${normal}"
+   exit 1
+fi
+
 ## SET COLORS IF TERMINAL SUPPORTS IT
 if test -t 1; then # if terminal
    ncolors=$(which tput > /dev/null && tput colors) # supports color
@@ -31,11 +36,6 @@ if test -t 1; then # if terminal
       white="$(tput setaf 7)"
       orange="$(tput setaf 166)"
    fi
-fi
-
-if [ `whoami` = root ]; then # exit if running as root
-   echo "${red}Script cannot be run as root!${normal}"
-   exit 1
 fi
 
 ## VARIABLES
@@ -67,10 +67,6 @@ Options:
 EOF
 }
 
-cursor_back() {
-   echo -en "\033[$1D"
-}
-
 success_print() { # success print
    echo "${green}${*}${normal}"
 }
@@ -81,6 +77,13 @@ warn_print() { # warning print
 
 err_print() { # error print
    echo "${red}${*}${normal}"
+}
+
+check_cmd() { # check if command failed
+   if [ $1 -ne 0 ]; then
+      err_print "Fatal error!"
+      exit 13
+   fi
 }
 
 bad_opt() { # print error to STDOUT and exit with error code '2'
@@ -104,6 +107,7 @@ check_npm_installed() { # check if specified npm package is installed
 install_npm_pkg() { # install npm package quietly
    warn_print "[$1] not found, installing..."
    sudo npm install -g $1 &>/dev/null
+   check_cmd $?
    success_print "[$1] installed successfully"
 }
 
@@ -116,6 +120,7 @@ install_pkg() { # install package quietly
    warn_print "[$1] not found, installing..."
    sudo apt-get update -qq
    sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq $1 >/dev/null
+   check_cmd $?
    success_print "[$1] installed successfully"
 }
 
@@ -213,6 +218,7 @@ fi
 # clone metaplex repo
 echo "cloning [metaplex] repo..."
 git clone https://github.com/metaplex-foundation/metaplex.git &>/dev/null
+check_cmd $?
 success_print "[metaplex] repo cloned successfully."
 
 # check if 'ts-node' installed, install if not
@@ -234,22 +240,27 @@ else
 fi
 
 solana config set --url https://api.${network}.solana.com >/dev/null # set solana network
+check_cmd $?
 keyJSON="${HOME}/.config/solana/${network}.json"
 
 if [ "${pubkey}" = "new" ]; then # generate new wallet
    pubkey=$(solana-keygen new --outfile $keyJSON | grep pubkey | cut -d' ' -f2)
-   echo $pubkey
+   check_cmd $?
 else  #import public wallet
-   echo "${orange}Note: You will need your recovery phrase to import wallet.${normal}"
+   echo "${orange}Note: You will need your recovery phrase to import wallet. This is required by Solana CLI
+      and will not be saved by this script nor on the system anywhere. The input is silent as well so no one can
+      see the input as you type it in or copy it!${normal}"
    solana-keygen recover 'prompt://?key=0/0' --outfile $keyJSON
-   echo $pubkey
+   check_cmd $?
 fi
 
 solana config set --keypair $keyJSON >/dev/null # set Solana CLI to use wallet
+check_cmd $?
 success_print "set keypair"
 
 if [ "${network}" = "devnet" ]; then # only airdrop if running on devnet
    solana airdrop 1 >/dev/null #airdrop some SOL
+   check_cmd $?
    success_print "airdropped 1 SOL"
 fi
 
@@ -257,7 +268,7 @@ metaplex_dir="${current_dir}/metaplex"
 assets_dir="${current_dir}/assets"
 
 echo "Creating directory for images..."
-mkdir $assets_dir # create directory for assests
+mkdir $assets_dir &>/dev/null # create directory for assests
 success_print "Directory created successfully."
 
 echo "${orange}**********************************************************************************************************************
@@ -272,14 +283,17 @@ cd $js_dir
 echo "" # just adding an extra break in output
 echo "Installing node modules..."
 yarn install --silent # install required npm modules
+check_cmd $?
 success_print "Node modules installed successfully."
 
 echo "Building packages..."
-yarn build >/dev/null # build metaplex componenets (cli, web, etc)
+yarn build # build metaplex componenets (cli, web, etc)
+check_cmd $?
 success_print "Packages built successfully."
 
 echo "Preparing packages and binaries..."
-yarn bootstrap >/dev/null
+yarn bootstrap
+check_cmd $?
 success_print "Packages and binaries prepared successfully"
 
 cd $metaplex_dir
@@ -287,22 +301,27 @@ cm_cli="${js_dir}/packages/cli/src/candy-machine-cli.ts"
 
 echo "Uploading images to candy machine..."
 cm_publickey=$(ts-node $cm_cli upload $assets_dir --env ${network} --keypair ${keyJSON} | grep publickey | cut -d' ' -f9)
+check_cmd $?
 success_print "Image upload successful."
 
 read -p "What would you like the price of the NFTs to be (in SOL): " price
 
 echo "Creating candy machine..."
 cm_pubkey=$(ts-node $cm_cli create_candy_machine --env ${network} --keypair ${keyJSON} --price ${price} | grep pubkey | cut -d' ' -f6)
+check_cmd $?
 success_print "Candy machine created successfully."
 
-echo "Updating candy machine with available minting start date (beginning of today)..."
-cm_timestamp=$(ts-node $cm_cli update_candy_machine --keypair ${keyJSON} --date `date '+%d %b %Y 00:00:00 %Z'` | grep startDate | cut -d' ' -f6)
+start_of_today=`date '+%d %b %Y 00:00:00 %Z'`
+echo "Updating candy machine with available minting start date to [${start_of_today}]..."
+cm_timestamp=$(ts-node $cm_cli update_candy_machine --keypair ${keyJSON} --date "${start_of_today}" | grep startDate | cut -d' ' -f6)
+check_cmd $?
 success_print "Date updated successfully."
 
 cd ${current_dir}
 
 echo "Cloning [candy-machine-mint] repo..."
 git clone https://github.com/exiled-apes/candy-machine-mint.git &>/dev/null
+check_cmd $?
 success_print "[candy-machine-mint] cloned successfully."
 
 cmm_dir="${current_dir}/candy-machine-mint"
@@ -311,25 +330,34 @@ cd $cmm_dir
 
 echo "Installing node modules..."
 yarn install --silent # install required npm modules
+check_cmd $?
 success_print "Node modules installed successfully."
 
 echo "Building packages..."
-yarn build &>/dev/null # build metaplex componenets (cli, web, etc)
+yarn build # build metaplex componenets (cli, web, etc)
+check_cmd $?
 success_print "Packages built successfully."
 
 env_ex_file="${cmm_dir}/.env.example"
 env_file="${cmm_dir}/.env"
 
-echo "Setting up environment file..."
 if [ ! -f $env_file ]; then
+   echo "Setting up environment file..."
    mv ${env_ex_file} ${env_file}
+   check_cmd $?
 
    sed -ie "s/REACT_APP_CANDY_MACHINE_CONFIG=__PLACEHOLDER__/REACT_APP_CANDY_MACHINE_CONFIG=${cm_publickey}/" $env_file
+   check_cmd $?
    sed -ie "s/REACT_APP_CANDY_MACHINE_ID=__PLACEHOLDER__/REACT_APP_CANDY_MACHINE_ID=${cm_pubkey}/" $env_file
+   check_cmd $?
    sed -ie "s/REACT_APP_TREASURY_ADDRESS=__PLACEHOLDER__/REACT_APP_TREASURY_ADDRESS=${pubkey}/" $env_file
+   check_cmd $?
    sed -ie "s/REACT_APP_CANDY_START_DATE=__PLACEHOLDER__/REACT_APP_CANDY_START_DATE=${cm_timestamp}/" $env_file
+   check_cmd $?
    sed -ie "s/REACT_APP_SOLANA_NETWORK=devnet/REACT_APP_SOLANA_NETWORK=${network}/" $env_file
-   sed -ie "s/REACT_APP_SOLANA_RPC_HOST=https://explorer-api.devnet.solana.com/REACT_APP_SOLANA_RPC_HOST=https://explorer-api.${network}.solana.com/" $env_file
+   check_cmd $?
+   sed -ie "s|REACT_APP_SOLANA_RPC_HOST=https://explorer-api.devnet.solana.com|REACT_APP_SOLANA_RPC_HOST=https://explorer-api.${network}.solana.com|" $env_file # use something other than `/` to separate search and replace fields since `/` is in URL
+   check_cmd $?
 fi
 success_print "Environment file successfully setup."
 
