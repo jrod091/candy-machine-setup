@@ -79,6 +79,41 @@ err_print() { # error print
    echo "${red}${*}${normal}"
 }
 
+shutdown() { # reset cursor in case spinner command errors out
+    tput cnorm # reset cursor
+}
+trap shutdown EXIT
+
+cursorBack() { # move cursor back for spinner animation
+    echo -en "\033[$1D"
+}
+
+spinner() { # spiner animation so user doesn't think script is hung
+    local LC_TYPE=C
+    local info="$1"
+    local pid=$!
+    local delay=0.1
+    local spin='⣾⣽⣻⢿⡿⣟⣯⣷'
+    #local spin='◐◓◑◒'
+    local charwidth=1
+    printf "$info"
+
+    local i=0
+    tput civis # invisible cursor
+
+    while kill -0 $pid 2> /dev/null; do
+	    local i=$(((i + $charwidth) % ${#spin}))
+	    printf "${green}%s${normal}" "${spin:$i:$charwidth}"
+	    
+        cursorBack $charwidth
+	    sleep $delay
+    done
+
+    tput cnorm
+    wait $pid
+    return $?
+}
+
 check_cmd() { # check if command failed
    if [ $1 -ne 0 ]; then
       err_print "Fatal error!"
