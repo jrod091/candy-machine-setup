@@ -44,7 +44,7 @@ The script will pause for you to get your images in the proper directory with as
          - For example, `"name": "NFT name"
    - Line 5: __"seller_fee_basis_points": \_\_PLACEHOLDER\_\___
       - This is the royalty rate for each sell of the NFT. This is on a scale from 0-10000
-         - For example, replacing with `"seller_free_basis_points: 250` would be a 2.5% royalty rate
+         - For example, replacing with `"seller_free_basis_points: 250"` would be a 2.5% royalty rate
    - Lines 9-11
       - These are the attributes for an NFT. You need to replace the following:
          - __"trait_type"__ with the name of the trait
