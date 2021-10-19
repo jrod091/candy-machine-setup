@@ -147,7 +147,7 @@ while getopts ":dhmnw:-:" OPT; do
       ? )               bad_opt ;;                          # bad short option
    esac
 done
-shift $((OPTIND-1)) # remove parsed optiosn and args from $@ list
+shift $((OPTIND-1)) # remove parsed options and args from $@ list
 
 ## CHECK REQUIRED FLAGS
 if [ "${network}" = "" ]; then
