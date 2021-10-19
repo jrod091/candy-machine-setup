@@ -79,6 +79,15 @@ err_print() { # error print
    echo "${red}${*}${normal}"
 }
 
+success_printf() { # printf implementation of success print
+   arr=("$@")
+   printf "${green}[%$((${COLUMNS} - ${#arr[0]} + 11))s]\n${normal}" "${arr[1]}"
+}
+
+err_printf() { # printf impementation of error print
+   arr=("$@")
+   printf "${red}[%$((${COLUMNS} - ${#arr[0]} + 11))s]\n${normal}" "${arr[1]}"
+}
 shutdown() { # reset cursor in case spinner command errors out
     tput cnorm # reset cursor
 }
@@ -182,7 +191,7 @@ while getopts ":dhmnw:-:" OPT; do
       ? )               bad_opt ;;                          # bad short option
    esac
 done
-shift $((OPTIND-1)) # remove parsed optiosn and args from $@ list
+shift $((OPTIND-1)) # remove parsed options and args from $@ list
 
 ## CHECK REQUIRED FLAGS
 if [ "${network}" = "" ]; then
@@ -193,7 +202,7 @@ if [ "${network}" = "" ]; then
 fi
 
 if [ "${pubkey}" = "" ]; then
-   err_print "Fatal: Wallet adress required!"
+   err_print "Fatal: Wallet address required!"
    warn_print "Pass the [-n] flag to create a new wallet or the [-w] flag followed by your wallet address"
    help_print
    exit 4
@@ -404,9 +413,9 @@ Configuration Complete! You may take the following steps to run the candy machin
    - upload image/json file combos to [${assets_dir}]
       - be sure the image/json files have the same base file name and are zero
         indexed, such as {0.png, 0.json}, {1.png, 1.json}, ... , {N.png, N.json}
-   - if on devnet, you may run `solana airdrop N` to add money to your wallet for
+   - if on devnet, you may run 'solana airdrop N' to add money to your wallet for
      minting, where `N` is a number >= 1 for the number of SOL to drop.
-   - cd to [${cmm_dir}] and then run `yarn start` to test candy machine
+   - cd to [${cmm_dir}] and then run 'yarn start' to test candy machine
    ############################################################################################################################${normal}"
 
 exit 0 # normal exit
