@@ -369,9 +369,9 @@ Configuration Complete! You may take the following steps to run the candy machin
    - upload image/json file combos to [${assets_dir}]
       - be sure the image/json files have the same base file name and are zero
         indexed, such as {0.png, 0.json}, {1.png, 1.json}, ... , {N.png, N.json}
-   - if on devnet, you may run `solana airdrop N` to add money to your wallet for
+   - if on devnet, you may run 'solana airdrop N' to add money to your wallet for
      minting, where `N` is a number >= 1 for the number of SOL to drop.
-   - cd to [${cmm_dir}] and then run `yarn start` to test candy machine
+   - cd to [${cmm_dir}] and then run 'yarn start' to test candy machine
    ############################################################################################################################${normal}"
 
 exit 0 # normal exit
