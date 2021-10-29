@@ -252,7 +252,7 @@ candy_machine() {
 
    if [ "${subcommand}" == "initial_mint" ]; then # only for initial run
       printf "Installing node modules..."
-      yarn install --silent 2>${log_file} & # install required npm modules
+      yarn install --silent 2>>${log_file} & # install required npm modules
       spinner
       check_cmd $? "failed to install node modules."
       success_printf "Node modules installed successfully."
@@ -269,7 +269,7 @@ information on properly setting up your images and JSON files.
    cm_cli="${js_dir}/packages/cli/src/candy-machine-cli.ts"
 
    printf "Uploading images for candy machine..."
-   ts-node $cm_cli upload $assets_dir --env ${network} --keypair ${keyJSON} 2>${log_file} 1>/dev/null &
+   ts-node $cm_cli upload $assets_dir --env ${network} --keypair ${keyJSON} 2>>${log_file} 1>/dev/null &
    spinner
    check_cmd $? "failed to upload images."
    success_printf "Image upload successful."
@@ -278,14 +278,14 @@ information on properly setting up your images and JSON files.
       read -p "What would you like the price of the NFTs to be (in SOL): " price
 
       printf "Creating candy machine..."
-      ts-node $cm_cli create_candy_machine --env ${network} --keypair ${keyJSON} --price ${price} 2>${log_file} 1>/dev/null &
+      ts-node $cm_cli create_candy_machine --env ${network} --keypair ${keyJSON} --price ${price} 2>>${log_file} 1>/dev/null &
       spinner
       check_cmd $? "failed to create candy machine."
       success_printf "Candy machine created successfully."
 
       start_of_today=`date '+%d %b %Y 00:00:00 %Z'`
       printf "Updating candy machine with available minting start date to [${start_of_today}]..."
-      ts-node $cm_cli update_candy_machine --env ${network} --keypair ${keyJSON} --date "${start_of_today}" 2>${log_file} 1>/dev/null &
+      ts-node $cm_cli update_candy_machine --env ${network} --keypair ${keyJSON} --date "${start_of_today}" 2>>${log_file} 1>/dev/null &
       spinner
       check_cmd $? "failed to update candy machine."
       success_printf "Date updated successfully."
@@ -296,7 +296,7 @@ information on properly setting up your images and JSON files.
 
    for i in $(seq $num_imgs); do # mint images, one at a time
       printf "\rMinting operation ongoing... successfully minted [${count}/${num_imgs}]..."
-      ts-node $cm_cli mint_one_token -e ${network} -k ${keyJSON} 2>${log_file} 1>/dev/null &
+      ts-node $cm_cli mint_one_token -e ${network} -k ${keyJSON} 2>>${log_file} 1>/dev/null &
       spinner
       check_cmd $? "unable to mint image."
       count=$((count+1))
@@ -305,7 +305,7 @@ information on properly setting up your images and JSON files.
    success_print "[${count}] images successfully minted."
 
    printf "Signing tokens..."
-   ts-node $cm_cli sign_all -e ${network} -k ${keyJSON} 2>${log_file} 1>/dev/null &
+   ts-node $cm_cli sign_all -e ${network} -k ${keyJSON} 2>>${log_file} 1>/dev/null &
    spinner
    check_cmd $? "unable to sign tokens."
    success_printf "Tokens signed successfully."
