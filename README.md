@@ -5,7 +5,25 @@ This script was written to help setup a metaplex store as well as a candy machin
 
 ## Usage
 ```
-Usage: candy_machine_setup <[options]>
+Usage: candy_machine_setup <command> <options>
+
+Commands:
+   initial_mint   setup candy machine and mint images
+   mint_more      run candy machine to mint more images
+
+Options:
+   -h, --help              print this help message
+
+You can run 'candy_machine <command> -h/--help to see help for specific command.
+```
+
+- `-h` or `--help`: This flag is used to print the usage of the script
+
+### Initial Mint
+The `initial_mint` command will ensure that your environment is properly setup with all the modules and libraries required to mint images. It will also mint your initial set of images.
+
+```
+Usage: candy_machine_setup initial_mint <options>
 
 Options:
    -d, --devnet            set 'devnet' as network
@@ -16,14 +34,33 @@ Options:
 ```
 
 - `-d` or `--devnet`: This flag is used to choose the `devnet` network while implementing the solution. This allows you to run in a test environment without real money.
-- `-h` or `--help`: This flag is used to print the usage of the script
+- `-h` or `--help`: This flag is used to print the usage of this command
 - `-m` or `--mainnet`: This flag is used to choose the `mainnet-beta` network while implementing this solution. This means everything will be live, with real money.
 - `-n` or `-newwallet`: If you do _not_ have a SOL wallet already, this will create one locally on the server
 - `-w {ID}` or `--wallet={ID}`: IF you _do_ have a SOL wallet, use this flag along with passing the public address (`{ID}`)
 
-### Notes
+#### Notes
 - You need to pass either `-d` or `-m` as an option to choose the network you want to run in. The script will error out if you do not and remind you to choose a network.
 - You need to pass either `-n` or `-p {ID}` as an option for a wallet. The script will error out if you do not and remind you to choose a wallet option.
+
+### Mint More Images
+The `mint_more` commmand will allow you to upload more images and mint those as well, assuming the environment is properly setup already.
+
+```
+Usage: candy_machine_setup mint_more <options>
+
+Options:
+   -d, --devnet            set 'devnet' as network
+   -h, --help              print command line options
+   -m, --mainnet           set 'mainnet' as network
+```
+
+- `-d` or `--devnet`: This flag is used to choose the `devnet` network while implementing the solution. This allows you to run in a test environment without real money.
+- `-h` or `--help`: This flag is used to print the usage of this command
+- `-m` or `--mainnet`: This flag is used to choose the `mainnet-beta` network while implementing this solution. This means everything will be live, with real money.
+
+#### Notes
+- You need to pass either `-d` or `-m` as an option to choose the network you want to run in. The script will error out if you do not and remind you to choose a network.
 
 ## Image Setup
 The script will pause for you to get your images in the proper directory with associated JSON files before continuing. The below are things you should keep in mind when adding your images.
