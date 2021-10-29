@@ -259,9 +259,9 @@ candy_machine() {
    fi
 
    echo "${orange}********************************************************************************************************************************************
-   Pausing to allow time to upload images and JSON files to [${assets_dir}]. Refer to the README for further
-   information on properly setting up your images and JSON files.
-   ********************************************************************************************************************************************${normal}"
+Pausing to allow time to upload images and JSON files to [${assets_dir}]. Refer to the README for further
+information on properly setting up your images and JSON files.
+********************************************************************************************************************************************${normal}"
    read -r -s -N 1 -p "Press [Enter] to continue..." key
    echo ""
 
