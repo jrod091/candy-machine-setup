@@ -54,7 +54,7 @@ subcommand=''
 ## FUNCTIONS
 help_print() { # print help text
    cat <<EOF
-Usage: candy_machine <command> <options>
+Usage: candy_machine_setup <command> <options>
 
 Commands:
    initial_mint   setup candy machine and mint images
@@ -63,13 +63,13 @@ Commands:
 Options:
    -h, --help              print this help message
 
-You can run 'candy_machine <command> -h/--help to see help for specific command.
+You can run 'candy_machine_setup <command> -h/--help to see help for specific command.
 EOF
 }
 
 initial_mint_help_print() { # print help text for 'initial_mint' command
     cat <<EOF
-Usage: candy_machine initial_mint <options>
+Usage: candy_machine_setup initial_mint <options>
 
 Options:
    -d, --devnet            set 'devnet' as network
@@ -82,7 +82,7 @@ EOF
 
 mint_more_help_print() { # print help text for 'initial_mint' command
     cat <<EOF
-Usage: candy_machine mint_more <options>
+Usage: candy_machine_setup mint_more <options>
 
 Options:
    -d, --devnet            set 'devnet' as network
