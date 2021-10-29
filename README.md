@@ -41,7 +41,7 @@ Options:
 
 #### Notes
 - You need to pass either `-d` or `-m` as an option to choose the network you want to run in. The script will error out if you do not and remind you to choose a network.
-- You need to pass either `-n` or `-p {ID}` as an option for a wallet. The script will error out if you do not and remind you to choose a wallet option.
+- You need to pass either `-n` or `-w {ID}` as an option for a wallet. The script will error out if you do not and remind you to choose a wallet option.
 
 ### Mint More Images
 The `mint_more` commmand will allow you to upload more images and mint those as well, assuming the environment is properly setup already.
