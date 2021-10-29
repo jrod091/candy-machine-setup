@@ -63,7 +63,7 @@ Commands:
 Options:
    -h, --help              print this help message
 
-You can run 'candy_machine_setup <command> -h/--help to see help for specific command.
+You can run 'candy_machine_setup <command> -h/--help' to see help for specific command.
 EOF
 }
 
@@ -319,14 +319,14 @@ init_mint() {
    if [ "${network}" = "" ]; then
       err_print "Fatal: Solana network not set!"
       warn_print "Pass the [-d] flag for devnet or the [-m] flag for mainnet"
-      help_print
+      init_mint_help_print
       exit 3
    fi
 
    if [ "${pubkey}" = "" ]; then
       err_print "Fatal: Wallet address required!"
       warn_print "Pass the [-n] flag to create a new wallet or the [-w] flag followed by your wallet address"
-      help_print
+      init_mint_help_print
       exit 4
    fi
 
@@ -383,7 +383,7 @@ init_mint() {
    if node --version &>/dev/null; then
       success_printf "[nodejs found]"
    else
-      node_repo="node_16.x"
+      node_repo="node_14.x" # v16 was giving issues with latest metaplex build
       distro=$(lsb_release -c -s)
 
       check_alt "solydxk-9"       "stretch"
@@ -456,8 +456,8 @@ init_mint() {
 
       curl -s "https://deb.nodesource.com/gpgkey/nodesource.gpg.key" | gpg --dearmor | sudo tee $local_node_key >/dev/null
 
-      echo "deb [signed-by=$local_node_key] https://deb.nodesource.com/${node_repo} ${distro} main" | sudo tee /etc/apt/sources.list.d/nodesource.list
-      echo "deb-src [signed-by=$local_node_key] https://deb.nodesource.com/${node_repo} ${distro} main" | sudo tee -a /etc/apt/sources.list.d/nodesource.list
+      echo "deb [signed-by=$local_node_key] https://deb.nodesource.com/${node_repo} ${distro} main" | sudo tee /etc/apt/sources.list.d/nodesource.list &>/dev/null
+      echo "deb-src [signed-by=$local_node_key] https://deb.nodesource.com/${node_repo} ${distro} main" | sudo tee -a /etc/apt/sources.list.d/nodesource.list &>/dev/null
       install_pkg nodejs
    fi
 
@@ -518,7 +518,7 @@ mint() {
    if [ "${network}" = "" ]; then
       err_print "Fatal: Solana network not set!"
       warn_print "Pass the [-d] flag for devnet or the [-m] flag for mainnet"
-      help_print
+      mint_more_help_print
       exit 3
    fi
 
