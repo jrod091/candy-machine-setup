@@ -14,7 +14,7 @@ Commands:
 Options:
    -h, --help              print this help message
 
-You can run 'candy_machine <command> -h/--help to see help for specific command.
+You can run 'candy_machine_setup <command> -h/--help to see help for specific command.
 ```
 
 - `-h` or `--help`: This flag is used to print the usage of the script
