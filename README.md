@@ -131,9 +131,9 @@ The script will pause for you to get your images in the proper directory with as
             - ** Notice the comma between code blocks, similar to the attributes section above **
 
 ## Examples
-#### devnet with new wallet
-- `./candy-machine-setup -d -n`
-- `./candy-machine-setup --devnet --newwallet`
-#### mainnet with existing wallet
-- `./candy-machine-setup -m -w WALLET_ADDRESS`
-- `./candy-machine-setup --mainnet --wallet=WALLET_ADDRESS`
+#### run initial configuration and mint
+- `./candy-machine-setup initial_mint -d -n`
+- `./candy-machine-setup initial_mint --mainnet --wallet={ID}`
+#### mint more images
+- `./candy-machine-setup mint_more -m`
+- `./candy-machine-setup mint_more --devnet`
