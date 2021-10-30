@@ -258,10 +258,7 @@ candy_machine() {
       success_printf "Node modules installed successfully."
    fi
 
-   echo "${orange}********************************************************************************************************************************************
-Pausing to allow time to upload images and JSON files to [${assets_dir}]. Refer to the README for further
-information on properly setting up your images and JSON files.
-********************************************************************************************************************************************${normal}"
+   printf "${orange}********************************************************************************************************************************************\nPausing to allow time to upload images and JSON files to [${assets_dir}]. Refer to the README for further\ninformation on properly setting up your images and JSON files.\n********************************************************************************************************************************************\n${normal}"
    read -r -s -N 1 -p "Press [Enter] to continue..." key
    echo ""
 
@@ -274,28 +271,26 @@ information on properly setting up your images and JSON files.
    check_cmd $? "failed to upload images."
    success_printf "Image upload successful."
 
-   if [ "${subcommand}" == "initial_mint" ]; then # only for initial run
-      read -p "What would you like the price of the NFTs to be (in SOL): " price
+   read -p "What would you like the price of the NFTs to be (in SOL): " price
 
-      printf "Creating candy machine..."
-      ts-node $cm_cli create_candy_machine --env ${network} --keypair ${keyJSON} --price ${price} 2>>${log_file} 1>/dev/null &
-      spinner
-      check_cmd $? "failed to create candy machine."
-      success_printf "Candy machine created successfully."
+   printf "Creating candy machine..."
+   ts-node $cm_cli create_candy_machine --env ${network} --keypair ${keyJSON} --price ${price} 2>>${log_file} 1>/dev/null &
+   spinner
+   check_cmd $? "failed to create candy machine."
+   success_printf "Candy machine created successfully."
 
-      start_of_today=`date '+%d %b %Y 00:00:00 %Z'`
-      printf "Updating candy machine with available minting start date to [${start_of_today}]..."
-      ts-node $cm_cli update_candy_machine --env ${network} --keypair ${keyJSON} --date "${start_of_today}" 2>>${log_file} 1>/dev/null &
-      spinner
-      check_cmd $? "failed to update candy machine."
-      success_printf "Date updated successfully."
-   fi
+   start_of_today=`date '+%d %b %Y 00:00:00 %Z'`
+   printf "Updating candy machine with available minting start date to [${start_of_today}]..."
+   ts-node $cm_cli update_candy_machine --env ${network} --keypair ${keyJSON} --date "${start_of_today}" 2>>${log_file} 1>/dev/null &
+   spinner
+   check_cmd $? "failed to update candy machine."
+   success_printf "Date updated successfully."
 
    num_imgs=$((`ls ${assets_dir} | wc -l` / 2 )) # get number of images in assets directory
    count=0 # used in progress print
 
    for i in $(seq $num_imgs); do # mint images, one at a time
-      printf "\rMinting operation ongoing... successfully minted [${count}/${num_imgs}]..."
+      printf "\rMinting operation ongoing, successfully minted [${count}/${num_imgs}]..."
       ts-node $cm_cli mint_one_token -e ${network} -k ${keyJSON} 2>>${log_file} 1>/dev/null &
       spinner
       check_cmd $? "unable to mint image."
@@ -525,6 +520,8 @@ mint() {
    current_dir=$(pwd) # save current working directory
    log_file="${current_dir}/candy_machine_setup_error.log"
 
+   rm -rf "${current_dir}/.cache" &>/dev/null
+
    candy_machine
 
    exit 0
@@ -541,7 +538,7 @@ while getopts ":h-:" OPT; do
    case "$OPT" in
       h | help )        help_print; exit 0 ;;               # print help
       ??* )             bad_opt "Unknown option --$OPT" ;;  # bad long option
-      ? )               bad_opt ;;                          # bad short option
+      ? )               bad_opt "Unknown option" ;;         # bad short option
    esac
 done
 shift $((OPTIND-1)) # remove parsed options and args from $@ list
@@ -563,13 +560,13 @@ case "$subcommand" in
                n | newwallet )   pubkey='new' ;;                     # generate new wallet
                w | wallet )      pubkey="${OPTARG}" ;;               # set public wallet key address
                ??* )             bad_opt "Unknown option --$OPT" ;;  # bad long option
-               ? )               bad_opt ;;                          # bad short option
+               ? )               bad_opt "Unkown option" ;;          # bad short option
          esac
       done
       shift $((OPTIND-1))
       ;;
    mint_more)
-      while getopts ":dhm:-:" opt; do
+      while getopts ":dhm-:" opt; do
          if [ "$OPT" = "-" ]; then   # long option support
                OPT="${OPTARG%%=*}"     # extract long option name
                OPTARG="${OPTARG#$OPT}" # extract long option argument (may be empty)
@@ -581,7 +578,7 @@ case "$subcommand" in
                h | help )        mint_more_help_print; exit 0;;      # print help
                m | mainnet )     network='mainnet-beta' ;;           # set mainnet
                ??* )             bad_opt "Unknown option --$OPT" ;;  # bad long option
-               ? )               bad_opt ;;                          # bad short option
+               ? )               bad_opt "Unknown option" ;;         # bad short option
          esac
       done
       shift $((OPTIND-1))
