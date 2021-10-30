@@ -61,6 +61,7 @@ Options:
 
 #### Notes
 - You need to pass either `-d` or `-m` as an option to choose the network you want to run in. The script will error out if you do not and remind you to choose a network.
+- Everytime you add more images, you must start from {0.png - 0.json} combination (this means replacing all png/json combos with new set).
 
 ## Image Setup
 The script will pause for you to get your images in the proper directory with associated JSON files before continuing. The below are things you should keep in mind when adding your images.
